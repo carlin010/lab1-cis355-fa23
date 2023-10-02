@@ -16,9 +16,13 @@ public class BookService : IBookService
 
     public Book GetBookById(int id) => _books.FirstOrDefault(b => b.Id == id);
 
-    public void AddBook(Book book)
+    public Book AddBook(BookRequest request)
     {
+
+        // Convert the BookRequest to Book and add it to the list of books.
+        var book = new Book { Id = _books.Count + 1, Title = request.Title, Author = request.Author };
         _books.Add(book);
+        return book;
     }
 
     public void UpdateBook(Book book)

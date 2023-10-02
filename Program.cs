@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using FluentValidation;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,7 @@ builder.Services.AddSwaggerGen(c => {
 // create a new IBookService each time you need to use it; the system will automatically give you
 // the one it has created. This is a technique called "Dependency Injection."
 builder.Services.AddSingleton<IBookService, BookService>();
+builder.Services.AddScoped<IValidator<BookRequest>, BookValidator>();
 
 var app = builder.Build();
 
@@ -52,14 +55,19 @@ app.MapGet("/books/{id}", (int id, IBookService bookService) =>
 // Map a POST request to the "/books" endpoint.
 // This will allow clients to create new books.
 // The new book's data will be passed in the request body and mapped to the 'newBook' parameter.
-app.MapPost("/books", (Book newBook, IBookService bookService) =>
+app.MapPost("/books", async (BookRequest newBook, IBookService bookService, IValidator<BookRequest> validator) =>
 {
+    var validationResult = await validator.ValidateAsync(newBook);
+    if (!validationResult.IsValid)
+    {
+        return Results.ValidationProblem(validationResult.ToDictionary());
+    }
     // Add the new book to the list of books in the IBookService class.
-    bookService.AddBook(newBook);
+    var response = bookService.AddBook(newBook);
 
     // Return a 201 Created status along with the newly created book.
     // The Created status code indicates that the resource was successfully created.
-    return Results.Created($"/books/{newBook.Id}", newBook);
+    return Results.Created($"/books/{response.Id}", response);
 });
 
 // Map a PUT request to the "/books/{id}" endpoint.
